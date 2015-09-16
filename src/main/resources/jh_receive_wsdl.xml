@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="http://webServices" xmlns:soapenc12="http://www.w3.org/2003/05/soap-encoding" xmlns:tns="http://webServices" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap11="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soapenc11="http://schemas.xmlsoap.org/soap/encoding/" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <wsdl:types>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://webServices">
+<xsd:element name="receiveConfirm">
+<xsd:complexType>
+<xsd:sequence>
+<xsd:element maxOccurs="1" minOccurs="1" name="orig" nillable="true" type="xsd:string"/>
+<xsd:element maxOccurs="1" minOccurs="1" name="sign" nillable="true" type="xsd:string"/>
+</xsd:sequence>
+</xsd:complexType>
+</xsd:element>
+<xsd:element name="receiveConfirmResponse">
+<xsd:complexType/>
+</xsd:element>
+<xsd:element name="receiveOutputData">
+<xsd:complexType>
+<xsd:sequence>
+<xsd:element maxOccurs="1" minOccurs="1" name="orig" nillable="true" type="xsd:string"/>
+<xsd:element maxOccurs="1" minOccurs="1" name="sign" nillable="true" type="xsd:string"/>
+</xsd:sequence>
+</xsd:complexType>
+</xsd:element>
+<xsd:element name="receiveOutputDataResponse">
+<xsd:complexType/>
+</xsd:element>
+</xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="receiveConfirmResponse">
+    <wsdl:part name="parameters" element="tns:receiveConfirmResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="receiveOutputDataRequest">
+    <wsdl:part name="parameters" element="tns:receiveOutputData">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="receiveOutputDataResponse">
+    <wsdl:part name="parameters" element="tns:receiveOutputDataResponse">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="receiveConfirmRequest">
+    <wsdl:part name="parameters" element="tns:receiveConfirm">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="JHPortType">
+    <wsdl:operation name="receiveConfirm">
+      <wsdl:input name="receiveConfirmRequest" message="tns:receiveConfirmRequest">
+    </wsdl:input>
+      <wsdl:output name="receiveConfirmResponse" message="tns:receiveConfirmResponse">
+    </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="receiveOutputData">
+      <wsdl:input name="receiveOutputDataRequest" message="tns:receiveOutputDataRequest">
+    </wsdl:input>
+      <wsdl:output name="receiveOutputDataResponse" message="tns:receiveOutputDataResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="JHHttpBinding" type="tns:JHPortType">
+    <wsdlsoap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="receiveConfirm">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="receiveConfirmRequest">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="receiveConfirmResponse">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="receiveOutputData">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="receiveOutputDataRequest">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="receiveOutputDataResponse">
+        <wsdlsoap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="JH">
+    <wsdl:port name="JHHttpPort" binding="tns:JHHttpBinding">
+      <wsdlsoap:address location="http://lsdev.56-net.com:9118/services/jh"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

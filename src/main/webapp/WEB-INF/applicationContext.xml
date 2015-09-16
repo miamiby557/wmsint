@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:jaxws="http://cxf.apache.org/jaxws"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://cxf.apache.org/jaxws http://cxf.apache.org/schemas/jaxws.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+    <bean name="startQuertz" lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+
+        <property name="triggers">
+            <list>
+                <ref bean="requestJobTrigger"/>
+            </list>
+        </property>
+    </bean>
+
+    <context:component-scan base-package="com.lnet.wmsint.jh.receive"/>
+
+    <!-- 定时器配置 -->
+    <bean id="requestJobTrigger"
+          class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="requestJobDetail"></property>
+        <property name="cronExpression" value="0 0/1 * * * ?"/>
+    </bean>
+
+    <bean id="requestJobDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="jhRequestJob"></property>
+        <property name="targetMethod" value="work"></property>
+    </bean>
+
+    <bean id="jhRequestJob" class="com.lnet.wmsint.jh.job.JHRequestJob">
+        <property name="companyCode" value="E51575C2CD4F6E0A"/>
+        <property name="returnUrl" value="http://dev.56-net.com:9119/services/jh?wsdl"/>
+        <property name="wsdlURL" value="http://103.245.130.51:8080/EDISend/ReceiveRequestService?wsdl"/>
+    </bean>
+
+
+    <!-- 定时器任务配置 -->
+    <bean id="jHProcessJob" class="com.lnet.wmsint.jh.job.JHProcessJob"/>
+    <bean id="jHExceptionProcessJob" class="com.lnet.wmsint.jh.job.JHExceptionProcessJob"/>
+
+    <!-- 自定义拦截器 -->
+    <bean id="cxfFilter" class="com.lnet.wmsint.jh.filter.CXFInFilter">
+        <constructor-arg value="receive"/>
+    </bean>
+    <!-- 佳华接收JAX-WS服务配置 -->
+    <jaxws:endpoint serviceName="JH" address="/jh" implementor="com.lnet.wmsint.jh.receive.ReceiveServiceImpl">
+        <!--<jaxws:inInterceptors>
+            <ref bean="cxfFilter"/>
+        </jaxws:inInterceptors>-->
+    </jaxws:endpoint>
+
+    <!--<bean id="transactionManager" class="org.springframework.transaction.jta.JtaTransactionManager"/>-->
+
+
+    <!-- JMS连接配置 -->
+    <bean id="targetConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="tcp://192.168.10.16:61616"/>
+    </bean>
+
+    <bean id="pooledConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory">
+        <property name="connectionFactory" ref="targetConnectionFactory"/>
+        <property name="maxConnections" value="10"/>
+    </bean>
+
+    <bean id="connectionFactory" class="org.springframework.jms.connection.SingleConnectionFactory">
+        <property name="targetConnectionFactory" ref="pooledConnectionFactory"/>
+    </bean>
+
+    <bean id="jhSalesOrderQueue" class="org.apache.activemq.command.ActiveMQQueue">
+        <constructor-arg>
+            <value>jhIncoming</value>
+        </constructor-arg>
+    </bean>
+
+    <bean id="jhSalesOrderErrorQueue" class="org.apache.activemq.command.ActiveMQQueue">
+        <constructor-arg>
+            <value>jhError</value>
+        </constructor-arg>
+    </bean>
+
+    <bean id="jhIncomingSender" class="com.lnet.wmsint.jh.receive.JmsSender">
+        <property name="connectionFactory" ref="connectionFactory" />
+        <property name="destination" ref="jhSalesOrderQueue" />
+    </bean>
+
+    <bean id="jhErrorSender" class="com.lnet.wmsint.jh.receive.JmsSender">
+        <property name="connectionFactory" ref="connectionFactory" />
+        <property name="destination" ref="jhSalesOrderErrorQueue" />
+    </bean>
+
+    <!-- 佳华JMS侦听器 -->
+    <bean id="jhSalesOrderContainer" class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="connectionFactory" />
+        <property name="destination" ref="jhSalesOrderQueue" />
+        <property name="messageListener" ref="jHProcessJob" />
+        <property name="sessionTransacted" value="true"/>
+
+    </bean>
+
+    <bean id="jhSalesOrderErrorContainer" class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="connectionFactory"/>
+        <property name="destination" ref="jhSalesOrderErrorQueue"/>
+        <property name="messageListener" ref="jHExceptionProcessJob"/>
+        <property name="sessionTransacted" value="true"/>
+
+    </bean>
+
+    <bean id="jaxb2Marshaller" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+        <property name="classesToBeBound">
+            <list>
+                <value>com.lnet.wmsint.jh.receive.JHSalesOrder</value>
+                <value>com.lnet.wmsint.jh.receive.JHSalesOrderHeader</value>
+                <value>com.lnet.wmsint.jh.receive.JHSalesOrderLine</value>
+            </list>
+        </property>
+        <property name="unmarshallerProperties">
+            <props>
+                <prop key="jaxb.encoding">UTF-8</prop>
+            </props>
+        </property>
+    </bean>
+    <!--出库-->
+    <bean id="saleOrderManager" class="com.lnet.wmsint.jh.gwallwms.SaleOrderManager">
+        <property name="serviceName" value="subCreateSaleOrder_XYT"/>
+        <property name="serviceUrl" value="http://192.168.10.8:7117/GwallServices/httpService"/>
+        <property name="format" value="XML"/>
+        <property name="appKey" value="app_wms"/>
+        <property name="appSecret" value="65a02f35-c51a-4641-8d96-943b6a9a1f59"/>
+        <property name="encrypt" value="0"/>
+    </bean>
+    <!--建货物档案-->
+    <bean id="goodManager" class="com.lnet.wmsint.jh.gwallwms.GoodManager">
+        <property name="serviceName" value="subGoodsCreateOrUpadte"/>
+        <property name="serviceUrl" value="http://192.168.10.8:7117/GwallServices/httpService"/>
+        <property name="format" value="XML"/>
+        <property name="appKey" value="app_wms"/>
+        <property name="appSecret" value="65a02f35-c51a-4641-8d96-943b6a9a1f59"/>
+        <property name="encrypt" value="0"/>
+    </bean>
+
+</beans>
