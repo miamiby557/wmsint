@@ -32,6 +32,8 @@
 
     <bean id="jhRequestJob" class="com.lnet.wmsint.jh.job.JHRequestJob">
         <property name="companyCode" value="E51575C2CD4F6E0A"/>
+
+
         <property name="returnUrl" value="http://dev.56-net.com:9119/services/jh?wsdl"/>
         <property name="wsdlURL" value="http://103.245.130.51:8080/EDISend/ReceiveRequestService?wsdl"/>
     </bean>
